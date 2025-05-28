@@ -66,7 +66,7 @@ Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
 ## 📞 İletişim
 
-Eğer sorularınız veya önerileriniz varsa, lütfen [GitHub Issues](https://github.com/kullaniciadi/mybodyrules/issues) üzerinden bize ulaşın.
+Eğer sorularınız veya önerileriniz varsa, lütfen [GitHub Issues](https://github.com/sudenurozturkk/mybodyrules/issues) üzerinden bize ulaşın.
 
 ## 🙏 Teşekkürler
 
