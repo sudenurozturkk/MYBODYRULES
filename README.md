@@ -1,6 +1,8 @@
 # MyBodyRules - Kişisel Sağlık ve Fitness Takip Uygulaması
 
-## �� Proje Hakkında
+![MyBodyRules Logo](logo.png) <!-- Eğer bir logonuz varsa -->
+
+## Proje Hakkında
 
 MyBodyRules, kullanıcıların sağlık ve fitness hedeflerini takip etmelerine, kişiselleştirilmiş öneriler almalarına ve ilerlemelerini görselleştirmelerine olanak tanıyan modern bir web uygulamasıdır. Kullanıcılar, günlük aktivitelerini, beslenme alışkanlıklarını ve fitness hedeflerini kaydedebilir, ilerlemelerini takip edebilir ve toplulukla etkileşimde bulunabilirler.
 
@@ -43,8 +45,8 @@ MyBodyRules, kullanıcıların sağlık ve fitness hedeflerini takip etmelerine,
    ```
 
 4. **Uygulamayı Başlatın:**
-   ```bash
-   npm run dev
+```bash
+npm run dev
    ```
 
 5. **Tarayıcıda Açın:**
@@ -54,5 +56,18 @@ MyBodyRules, kullanıcıların sağlık ve fitness hedeflerini takip etmelerine,
 
 Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
+## 👥 Katkıda Bulunma
 
-## 📞 İletişim whodenur@gmail.com
+1. Bu depoyu fork edin.
+2. Yeni bir özellik dalı oluşturun (`git checkout -b feature/amazing-feature`).
+3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`).
+4. Dalınıza push edin (`git push origin feature/amazing-feature`).
+5. Bir Pull Request açın.
+
+## 📞 İletişim
+
+Eğer sorularınız veya önerileriniz varsa, lütfen [GitHub Issues](https://github.com/kullaniciadi/mybodyrules/issues) üzerinden bize ulaşın.
+
+## 🙏 Teşekkürler
+
+Bu projeye katkıda bulunan herkese teşekkür ederiz!

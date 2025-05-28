@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern yatay scroll bar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1e90ff #f0f0f0;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1e90ff55;
+  border-radius: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+/* Bu dosya, global CSS stillerini içerecektir. */ 
