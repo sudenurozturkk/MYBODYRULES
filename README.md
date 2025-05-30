@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyBodyRules - Kişisel Sağlık ve Fitness Takip Uygulaması
 
-## Getting Started
+![MyBodyRules Logo](logo.png) <!-- Eğer bir logonuz varsa -->
 
-First, run the development server:
+## Proje Hakkında
+
+MyBodyRules, kullanıcıların sağlık ve fitness hedeflerini takip etmelerine, kişiselleştirilmiş öneriler almalarına ve ilerlemelerini görselleştirmelerine olanak tanıyan modern bir web uygulamasıdır. Kullanıcılar, günlük aktivitelerini, beslenme alışkanlıklarını ve fitness hedeflerini kaydedebilir, ilerlemelerini takip edebilir ve toplulukla etkileşimde bulunabilirler.
+
+## ✨ Özellikler
+
+- **Kullanıcı Kimlik Doğrulama:** Güvenli giriş ve kayıt sistemi.
+- **Kişiselleştirilmiş Profil:** Kullanıcıların sağlık ve fitness hedeflerini belirleyebilecekleri özelleştirilebilir profiller.
+- **Aktivite Takibi:** Günlük aktivitelerin ve egzersizlerin kaydedilmesi ve takibi.
+- **Beslenme Takibi:** Günlük beslenme alışkanlıklarının kaydedilmesi ve analizi.
+- **İlerleme Görselleştirme:** Kullanıcıların ilerlemelerini grafikler ve istatistiklerle görselleştirme.
+- **Topluluk Etkileşimi:** Kullanıcıların birbirleriyle etkileşimde bulunabilecekleri bir topluluk platformu.
+
+## 🛠️ Kullanılan Teknolojiler
+
+- **Frontend:** Next.js, React, Tailwind CSS
+- **Backend:** Node.js, Express
+- **Veritabanı:** MongoDB
+- **Kimlik Doğrulama:** JWT (JSON Web Token)
+- **Diğer Araçlar:** Git, GitHub, VS Code
+
+## 🚀 Kurulum
+
+1. **Projeyi Klonlayın:**
+
+   ```bash
+   git clone https://github.com/kullaniciadi/mybodyrules.git
+   cd mybodyrules
+   ```
+
+2. **Bağımlılıkları Yükleyin:**
+
+   ```bash
+   npm install
+   ```
+
+3. **.env Dosyasını Oluşturun:**
+   Projenin kök dizininde `.env` dosyası oluşturun ve aşağıdaki değişkenleri ekleyin:
+
+   ```
+   MONGODB_URI=mongodb://<username>:<password>@<host>:<port>/<database>
+   JWT_SECRET=your_jwt_secret_key
+   NODE_ENV=development
+   ```
+
+4. **Uygulamayı Başlatın:**
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. **Tarayıcıda Açın:**
+   Uygulama varsayılan olarak `http://localhost:3000` adresinde çalışacaktır.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📄 Lisans
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
-## Learn More
+## 👥 Katkıda Bulunma
 
-To learn more about Next.js, take a look at the following resources:
+1. Bu depoyu fork edin.
+2. Yeni bir özellik dalı oluşturun (`git checkout -b feature/amazing-feature`).
+3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`).
+4. Dalınıza push edin (`git push origin feature/amazing-feature`).
+5. Bir Pull Request açın.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📞 İletişim
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Eğer sorularınız veya önerileriniz varsa, lütfen [GitHub Issues](https://github.com/kullaniciadi/mybodyrules/issues) üzerinden bize ulaşın.
 
-## Deploy on Vercel
+## 🙏 Teşekkürler
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Bu projeye katkıda bulunan herkese teşekkür ederiz!
