@@ -16,35 +16,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    try {
-      // Burada gerçek API çağrısı yapılacak
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Giriş yapılırken bir hata oluştu');
-      }
-
-      // Başarılı girişte email'i localStorage'a kaydet
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('userEmail', email);
-      }
-
-      // Başarılı giriş
-      router.push('/profile');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Giriş yapılırken bir hata oluştu');
-    } finally {
-      setLoading(false);
+    // Geçici olarak API'ye istek gönderme, doğrudan giriş yapmış gibi profile yönlendir
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userEmail', email);
     }
+    router.push('/profile');
+    setLoading(false);
   };
 
   return (

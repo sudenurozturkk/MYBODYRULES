@@ -9,6 +9,8 @@ type Note = {
   title: string;
   content: string;
   tags: string[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 };
 
 export default function NotesPage() {
@@ -27,107 +29,69 @@ export default function NotesPage() {
   const userId = 'user123'; // Geçici olarak sabit bir kullanıcı ID'si kullanıyoruz
 
   useEffect(() => {
-    fetchNotes();
-  }, [searchQuery, activeTags]);
-
-  const fetchNotes = async () => {
+    const stored = localStorage.getItem('notes');
+    let parsed = [];
     try {
-      setIsLoading(true);
-      setError(null);
-
-      let url = `/api/notes?userId=${userId}`;
-      if (searchQuery) {
-        url += `&search=${searchQuery}`;
-      }
-      if (activeTags.length > 0) {
-        url += `&tag=${activeTags[0]}`; // Şimdilik tek etiket ile filtreleme yapıyoruz
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Notlar getirilemedi');
-      }
-
-      const data = await response.json();
-      setNotes(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
-      setIsLoading(false);
+      parsed = stored ? JSON.parse(stored) : [];
+    } catch {
+      parsed = [];
     }
+    if (!stored || (Array.isArray(parsed) && parsed.length === 0)) {
+      import('../../data/notes.json').then((mod) => {
+        setNotes(mod.default);
+        localStorage.setItem('notes', JSON.stringify(mod.default));
+      });
+    } else {
+      setNotes(parsed);
+    }
+  }, []);
+
+  // Her notes değiştiğinde localStorage'a kaydet
+  useEffect(() => {
+    localStorage.setItem('notes', JSON.stringify(notes));
+  }, [notes]);
+
+  // Arama ve etiket filtreleme işlemleri localde yapılacak
+  const filteredNotes = notes.filter((note) => {
+    const matchesSearch =
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTags =
+      activeTags.length === 0 || activeTags.every((tag) => note.tags.includes(tag));
+    return matchesSearch && matchesTags;
+  });
+
+  // API çağrılarını kaldır, doğrudan state üzerinde işlemler
+  const handleCreateNote = () => {
+    setError(null);
+    const newNote: Note = {
+      _id: Date.now().toString(),
+      title,
+      content,
+      tags,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setNotes([newNote, ...notes]);
+    resetForm();
   };
 
-  const handleCreateNote = async () => {
-    try {
-      setError(null);
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          title,
-          content,
-          tags,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Not oluşturulamadı');
-      }
-
-      const newNote = await response.json();
-      setNotes([newNote, ...notes]);
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleUpdateNote = (note: Note) => {
+    setError(null);
+    const updatedNote: Note = {
+      ...note,
+      title,
+      content,
+      tags,
+      updatedAt: new Date(),
+    };
+    setNotes(notes.map((n) => (n._id === note._id ? updatedNote : n)));
+    resetForm();
   };
 
-  const handleUpdateNote = async (note: Note) => {
-    try {
-      setError(null);
-      const response = await fetch(`/api/notes/${note._id?.toString()}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          title,
-          content,
-          tags,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Not güncellenemedi');
-      }
-
-      const updatedNote = await response.json();
-      setNotes(notes.map((n) => (n._id?.toString() === note._id?.toString() ? updatedNote : n)));
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
-  };
-
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      setError(null);
-      const response = await fetch(`/api/notes/${noteId}?userId=${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Not silinemedi');
-      }
-
-      setNotes(notes.filter((n) => n._id?.toString() !== noteId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleDeleteNote = (noteId: string) => {
+    setError(null);
+    setNotes(notes.filter((n) => n._id !== noteId));
   };
 
   const handleAddTag = () => {
@@ -169,7 +133,7 @@ export default function NotesPage() {
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-red-50 dark:from-blue-900 dark:via-green-900 dark:to-red-900">
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-green-500 to-red-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-fitness-blue via-fitness-green to-fitness-orange bg-clip-text text-transparent mb-4 text-center drop-shadow-lg">
             Notlar
           </h1>
           <motion.div
@@ -177,8 +141,9 @@ export default function NotesPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <p className="text-gray-600 dark:text-gray-300">
-              Sağlık ve fitness notlarınızı yönetin
+            <p className="text-lg text-gray-600 dark:text-gray-300 text-center max-w-2xl mx-auto">
+              Sağlık ve fitness yolculuğunda önemli notlarını burada saklayabilirsin. Kategorilere
+              ayır, etiketle ve istediğin zaman geri dön!
             </p>
           </motion.div>
 
@@ -189,32 +154,30 @@ export default function NotesPage() {
           )}
 
           {/* Arama ve Filtreleme */}
-          <div className="mb-8">
-            <div className="flex space-x-4 mb-4">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Notlarda ara..."
-                className="input flex-1"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {Array.from(new Set(notes.flatMap((note) => note.tags))).map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => handleToggleTag(tag)}
-                  className={`px-3 py-1 rounded-full text-sm flex items-center space-x-1 ${
-                    activeTags.includes(tag)
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  <TagIcon className="w-4 h-4" />
-                  <span>{tag}</span>
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-col md:flex-row md:space-x-4 mb-4 gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Notlarda ara..."
+              className="input flex-1 rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {Array.from(new Set(notes.flatMap((note) => note.tags))).map((tag) => (
+              <button
+                key={tag}
+                onClick={() => handleToggleTag(tag)}
+                className={`px-3 py-1 rounded-full text-sm flex items-center space-x-1 shadow transition-all duration-200 border-2 ${
+                  activeTags.includes(tag)
+                    ? 'bg-gradient-to-r from-fitness-blue to-fitness-green text-white border-fitness-blue scale-105'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:scale-105'
+                }`}
+              >
+                <TagIcon className="w-4 h-4" />
+                <span>{tag}</span>
+              </button>
+            ))}
           </div>
 
           {/* Not Oluşturma/Düzenleme Formu */}
@@ -224,9 +187,9 @@ export default function NotesPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="card mb-8"
+                className="card mb-8 bg-white/95 dark:bg-neutral-900/90 rounded-2xl shadow-2xl p-8 border border-fitness-blue/30"
               >
-                <h2 className="text-xl font-heading font-semibold mb-4">
+                <h2 className="text-2xl font-heading font-bold mb-4 text-fitness-blue dark:text-fitness-green">
                   {editingNote ? 'Notu Düzenle' : 'Yeni Not'}
                 </h2>
                 <div className="space-y-4">
@@ -238,7 +201,7 @@ export default function NotesPage() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="input w-full"
+                      className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       placeholder="Not başlığı"
                     />
                   </div>
@@ -249,7 +212,7 @@ export default function NotesPage() {
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="input w-full"
+                      className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       rows={5}
                       placeholder="Not içeriği"
                     />
@@ -262,12 +225,13 @@ export default function NotesPage() {
                       {tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm flex items-center"
+                          className="px-3 py-1 bg-gradient-to-r from-fitness-blue to-fitness-green text-white rounded-full text-xs flex items-center shadow"
                         >
                           {tag}
                           <button
                             onClick={() => handleRemoveTag(tag)}
-                            className="ml-2 text-gray-400 hover:text-red-500"
+                            className="ml-2 text-white/70 hover:text-red-300"
+                            title="Etiketi kaldır"
                           >
                             ×
                           </button>
@@ -280,27 +244,27 @@ export default function NotesPage() {
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         placeholder="Etiket ekle..."
-                        className="input flex-1"
+                        className="input flex-1 rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && tagInput.trim()) {
                             handleAddTag();
                           }
                         }}
                       />
-                      <button onClick={handleAddTag} className="btn-secondary">
+                      <button onClick={handleAddTag} className="btn-secondary rounded-xl">
                         Ekle
                       </button>
                     </div>
                   </div>
                   <div className="flex justify-end space-x-4">
-                    <button onClick={resetForm} className="btn-secondary">
+                    <button onClick={resetForm} className="btn-secondary rounded-xl">
                       İptal
                     </button>
                     <button
                       onClick={() =>
                         editingNote ? handleUpdateNote(editingNote) : handleCreateNote()
                       }
-                      className="btn-primary"
+                      className="btn-primary rounded-xl"
                     >
                       {editingNote ? 'Güncelle' : 'Oluştur'}
                     </button>
@@ -312,15 +276,24 @@ export default function NotesPage() {
 
           {/* Not Listesi */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {notes.map((note) => (
+            {filteredNotes.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-60">
+                <img src="/empty-notes.svg" alt="Boş Notlar" className="w-32 h-32 mb-4" />
+                <p className="text-lg font-semibold">Henüz hiç notun yok. Hemen bir not ekle!</p>
+              </div>
+            )}
+            {filteredNotes.map((note) => (
               <motion.div
                 key={note._id?.toString()}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card"
+                whileHover={{ scale: 1.03, boxShadow: '0 8px 32px 0 rgba(0,0,0,0.12)' }}
+                className="card bg-white/90 dark:bg-neutral-900/80 rounded-2xl shadow-xl p-6 transition-all duration-200 border border-gray-100 dark:border-gray-800 hover:border-fitness-blue"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold">{note.title}</h3>
+                  <h3 className="text-lg font-bold text-fitness-blue dark:text-fitness-green flex-1 truncate">
+                    {note.title}
+                  </h3>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => {
@@ -341,26 +314,29 @@ export default function NotesPage() {
                     </button>
                   </div>
                 </div>
-
-                <p className="text-gray-600 dark:text-gray-300 mb-4 whitespace-pre-wrap">
+                <p className="text-gray-700 dark:text-gray-200 mb-4 whitespace-pre-wrap min-h-[60px]">
                   {note.content}
                 </p>
-
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-2">
                   {note.tags.map((tag: string) => (
                     <span
                       key={tag}
-                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm flex items-center"
+                      className="px-3 py-1 bg-gradient-to-r from-fitness-blue to-fitness-green text-white rounded-full text-xs flex items-center shadow"
                     >
                       <TagIcon className="w-4 h-4 mr-1" />
                       {tag}
                     </span>
                   ))}
                 </div>
-
-                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                  <p>Oluşturulma: {new Date(note.createdAt).toLocaleDateString('tr-TR')}</p>
-                  <p>Son Güncelleme: {new Date(note.updatedAt).toLocaleDateString('tr-TR')}</p>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-1">
+                  <span>
+                    Oluşturulma:{' '}
+                    {note.createdAt ? new Date(note.createdAt).toLocaleDateString('tr-TR') : '-'}
+                  </span>
+                  <span>
+                    Son Güncelleme:{' '}
+                    {note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('tr-TR') : '-'}
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -372,9 +348,10 @@ export default function NotesPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={() => setIsCreating(true)}
-              className="fixed bottom-8 right-8 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-dark transition-colors"
+              className="fixed bottom-8 right-8 p-5 bg-gradient-to-br from-fitness-blue to-fitness-green text-white rounded-full shadow-2xl hover:scale-110 hover:shadow-fitness-blue/40 transition-all z-50 border-4 border-white dark:border-neutral-900"
+              title="Yeni Not Ekle"
             >
-              <PlusIcon className="w-6 h-6" />
+              <PlusIcon className="w-7 h-7" />
             </motion.button>
           )}
         </div>

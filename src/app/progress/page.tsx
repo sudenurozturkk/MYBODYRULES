@@ -3,7 +3,27 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Progress } from '@/models/Progress';
+
+// Progress tipi local olarak tanımlanıyor
+type Progress = {
+  _id?: string;
+  userId: string;
+  date: string;
+  weight: number;
+  bodyFat?: number;
+  measurements?: {
+    chest?: number;
+    waist?: number;
+    hips?: number;
+    biceps?: number;
+    thighs?: number;
+    calves?: number;
+  };
+  photos?: Record<string, string>;
+  notes?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+};
 
 export default function ProgressPage() {
   const [progressRecords, setProgressRecords] = useState<Progress[]>([]);
@@ -28,116 +48,71 @@ export default function ProgressPage() {
   const userId = 'user123'; // Geçici olarak sabit bir kullanıcı ID'si kullanıyoruz
 
   useEffect(() => {
-    fetchProgressRecords();
+    // Sayfa yüklendiğinde localStorage'dan ilerleme kayıtlarını yükle
+    const storedProgress = localStorage.getItem('progress');
+    if (storedProgress) {
+      setProgressRecords(JSON.parse(storedProgress));
+      setIsLoading(false);
+    } else {
+      // Eğer localStorage boşsa, src/data/progress.json dosyasından verileri yükle
+      import('../../data/progress.json').then((module) => {
+        setProgressRecords(module.default);
+        localStorage.setItem('progress', JSON.stringify(module.default));
+        setIsLoading(false);
+      });
+    }
   }, []);
 
-  const fetchProgressRecords = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // Her progressRecords değiştiğinde localStorage'a kaydet
+  useEffect(() => {
+    localStorage.setItem('progress', JSON.stringify(progressRecords));
+  }, [progressRecords]);
 
-      const response = await fetch(`/api/progress?userId=${userId}`);
-      if (!response.ok) {
-        throw new Error('İlerleme kayıtları getirilemedi');
-      }
-
-      const data = await response.json();
-      setProgressRecords(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCreateProgress = () => {
+    setError(null);
+    const newProgress = {
+      _id: Date.now().toString(),
+      userId,
+      date,
+      weight: Number(weight),
+      bodyFat: bodyFat ? Number(bodyFat) : undefined,
+      measurements,
+      photos,
+      notes,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setProgressRecords([newProgress, ...progressRecords]);
+    resetForm();
   };
 
-  const handleCreateProgress = async () => {
-    try {
-      setError(null);
-
-      const response = await fetch('/api/progress', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          date,
-          weight: Number(weight),
-          bodyFat: bodyFat ? Number(bodyFat) : undefined,
-          measurements,
-          photos,
-          notes,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('İlerleme kaydı oluşturulamadı');
-      }
-
-      const newProgress = await response.json();
-      setProgressRecords([newProgress, ...progressRecords]);
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleUpdateProgress = (progress: Progress) => {
+    setError(null);
+    const updatedProgress: Progress = {
+      ...progress,
+      date,
+      weight: Number(weight),
+      bodyFat: bodyFat ? Number(bodyFat) : undefined,
+      measurements,
+      photos,
+      notes,
+      updatedAt: new Date(),
+    };
+    setProgressRecords(progressRecords.map((p) => (p._id === progress._id ? updatedProgress : p)));
+    resetForm();
   };
 
-  const handleUpdateProgress = async (progress: Progress) => {
-    try {
-      setError(null);
-
-      const response = await fetch(`/api/progress/${progress._id?.toString()}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          date,
-          weight: Number(weight),
-          bodyFat: bodyFat ? Number(bodyFat) : undefined,
-          measurements,
-          photos,
-          notes,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('İlerleme kaydı güncellenemedi');
-      }
-
-      const updatedProgress = await response.json();
-      setProgressRecords(
-        progressRecords.map((p) =>
-          p._id?.toString() === progress._id?.toString() ? updatedProgress : p
-        )
-      );
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleDeleteProgress = (progressId: string) => {
+    setError(null);
+    setProgressRecords(progressRecords.filter((p) => p._id !== progressId));
   };
 
-  const handleDeleteProgress = async (progressId: string) => {
-    try {
-      setError(null);
-      const response = await fetch(`/api/progress/${progressId}?userId=${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('İlerleme kaydı silinemedi');
-      }
-
-      setProgressRecords(progressRecords.filter((p) => p._id?.toString() !== progressId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
-  };
-
-  const handleMeasurementChange = (field: keyof Progress['measurements'], value: string) => {
+  const handleMeasurementChange = (
+    field: keyof NonNullable<Progress['measurements']>,
+    value: string | undefined
+  ) => {
     setMeasurements((prev) => ({
-      ...prev,
+      ...(prev || {}),
       [field]: value ? Number(value) : undefined,
     }));
   };
@@ -212,7 +187,7 @@ export default function ProgressPage() {
                     </label>
                     <input
                       type="date"
-                      value={date}
+                      value={date ?? ''}
                       onChange={(e) => setDate(e.target.value)}
                       className="input w-full"
                     />
@@ -258,8 +233,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.chest || ''}
-                          onChange={(e) => handleMeasurementChange('chest', e.target.value)}
+                          value={measurements?.chest ?? ''}
+                          onChange={(e) => handleMeasurementChange('chest', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -272,8 +247,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.waist || ''}
-                          onChange={(e) => handleMeasurementChange('waist', e.target.value)}
+                          value={measurements?.waist ?? ''}
+                          onChange={(e) => handleMeasurementChange('waist', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -286,8 +261,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.hips || ''}
-                          onChange={(e) => handleMeasurementChange('hips', e.target.value)}
+                          value={measurements?.hips ?? ''}
+                          onChange={(e) => handleMeasurementChange('hips', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -300,8 +275,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.biceps || ''}
-                          onChange={(e) => handleMeasurementChange('biceps', e.target.value)}
+                          value={measurements?.biceps ?? ''}
+                          onChange={(e) => handleMeasurementChange('biceps', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -314,8 +289,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.thighs || ''}
-                          onChange={(e) => handleMeasurementChange('thighs', e.target.value)}
+                          value={measurements?.thighs ?? ''}
+                          onChange={(e) => handleMeasurementChange('thighs', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -328,8 +303,8 @@ export default function ProgressPage() {
                         </label>
                         <input
                           type="number"
-                          value={measurements.calves || ''}
-                          onChange={(e) => handleMeasurementChange('calves', e.target.value)}
+                          value={measurements?.calves ?? ''}
+                          onChange={(e) => handleMeasurementChange('calves', e.target.value ?? '')}
                           className="input w-full"
                           min="0"
                           step="0.1"
@@ -343,11 +318,11 @@ export default function ProgressPage() {
                       Notlar
                     </label>
                     <textarea
-                      value={notes}
+                      value={notes ?? ''}
                       onChange={(e) => setNotes(e.target.value)}
                       className="input w-full"
                       rows={3}
-                      placeholder="İlerleme notları"
+                      placeholder="Notlar"
                     />
                   </div>
 
@@ -375,7 +350,7 @@ export default function ProgressPage() {
           <div className="grid grid-cols-1 gap-6">
             {progressRecords.map((progress) => (
               <motion.div
-                key={progress._id?.toString()}
+                key={progress._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="card"
@@ -383,7 +358,7 @@ export default function ProgressPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold">
-                      {new Date(progress.date).toLocaleDateString('tr-TR')}
+                      {new Date(progress.date ?? '').toLocaleDateString('tr-TR')}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Kilo: {progress.weight} kg
@@ -394,7 +369,7 @@ export default function ProgressPage() {
                     <button
                       onClick={() => {
                         setEditingProgress(progress);
-                        setDate(new Date(progress.date).toISOString().split('T')[0]);
+                        setDate(new Date(progress.date ?? '').toISOString().split('T')[0]);
                         setWeight(progress.weight.toString());
                         setBodyFat(progress.bodyFat?.toString() || '');
                         setMeasurements(progress.measurements);
@@ -406,7 +381,7 @@ export default function ProgressPage() {
                       <PencilIcon className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDeleteProgress(progress._id?.toString() || '')}
+                      onClick={() => handleDeleteProgress(progress._id)}
                       className="p-2 text-gray-500 hover:text-red-500"
                     >
                       <TrashIcon className="w-5 h-5" />
@@ -418,32 +393,32 @@ export default function ProgressPage() {
                   <div>
                     <h4 className="font-medium mb-2">Ölçüler</h4>
                     <div className="space-y-2">
-                      {progress.measurements.chest && (
+                      {progress.measurements?.chest && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Göğüs: {progress.measurements.chest} cm
                         </p>
                       )}
-                      {progress.measurements.waist && (
+                      {progress.measurements?.waist && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Bel: {progress.measurements.waist} cm
                         </p>
                       )}
-                      {progress.measurements.hips && (
+                      {progress.measurements?.hips && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Kalça: {progress.measurements.hips} cm
                         </p>
                       )}
-                      {progress.measurements.biceps && (
+                      {progress.measurements?.biceps && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Biceps: {progress.measurements.biceps} cm
                         </p>
                       )}
-                      {progress.measurements.thighs && (
+                      {progress.measurements?.thighs && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Bacak: {progress.measurements.thighs} cm
                         </p>
                       )}
-                      {progress.measurements.calves && (
+                      {progress.measurements?.calves && (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           Baldır: {progress.measurements.calves} cm
                         </p>
@@ -494,8 +469,12 @@ export default function ProgressPage() {
                 )}
 
                 <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                  <p>Oluşturulma: {new Date(progress.createdAt).toLocaleDateString('tr-TR')}</p>
-                  <p>Son Güncelleme: {new Date(progress.updatedAt).toLocaleDateString('tr-TR')}</p>
+                  <p>
+                    Oluşturulma: {new Date(progress.createdAt ?? '').toLocaleDateString('tr-TR')}
+                  </p>
+                  <p>
+                    Son Güncelleme: {new Date(progress.updatedAt ?? '').toLocaleDateString('tr-TR')}
+                  </p>
                 </div>
               </motion.div>
             ))}

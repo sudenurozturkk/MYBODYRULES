@@ -1,0 +1,19 @@
+[
+  {
+    "_id": "1",
+    "userId": "user123",
+    "title": "5 kg Kilo Ver",
+    "description": "Yaza kadar 5 kilo vermek istiyorum.",
+    "type": "weight",
+    "targetValue": 70,
+    "currentValue": 75,
+    "unit": "kg",
+    "deadline": "2024-08-01",
+    "milestones": [
+      { "id": "m1", "title": "İlk hafta 1 kg", "completed": false },
+      { "id": "m2", "title": "İkinci hafta 1 kg", "completed": false }
+    ],
+    "createdAt": "2024-06-10T12:00:00.000Z",
+    "updatedAt": "2024-06-10T12:00:00.000Z"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "userId": "user123",
+  "name": "Deneme Kullanıcı",
+  "email": "test@example.com",
+  "age": 28,
+  "gender": "Kadın",
+  "photo": "",
+  "bio": "Sağlıklı yaşamı seven, spora ve beslenmeye önem veren bir kullanıcı.",
+  "createdAt": "2024-06-10T12:00:00.000Z",
+  "updatedAt": "2024-06-10T12:00:00.000Z"
+}

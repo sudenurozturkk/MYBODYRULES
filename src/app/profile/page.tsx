@@ -57,29 +57,28 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+    const stored = localStorage.getItem('profile');
+    let parsed = null;
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/profile?userId=${profile.userId}`);
-      if (!response.ok) {
-        throw new Error('Profil getirilemedi');
-      }
-
-      const data = await response.json();
-      if (data) {
-        setProfile(data);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
+      parsed = stored ? JSON.parse(stored) : null;
+    } catch {
+      parsed = null;
+    }
+    if (!stored || !parsed) {
+      import('../../data/profile.json').then((mod) => {
+        setProfile(mod.default);
+        localStorage.setItem('profile', JSON.stringify(mod.default));
+        setIsLoading(false);
+      });
+    } else {
+      setProfile(parsed);
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('profile', JSON.stringify(profile));
+  }, [profile]);
 
   const saveProfile = async (updatedProfile: UserProfile) => {
     try {

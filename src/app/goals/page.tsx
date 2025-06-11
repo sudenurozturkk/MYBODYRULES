@@ -6,10 +6,17 @@ import { PlusIcon, PencilIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/
 
 type Goal = {
   _id?: string;
+  userId: string;
   title: string;
   description: string;
-  milestones: string[];
-  completed: boolean;
+  type: 'weight' | 'fitness' | 'nutrition' | 'lifestyle';
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  deadline: string | Date;
+  milestones: any[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 };
 
 export default function GoalsPage() {
@@ -30,140 +37,95 @@ export default function GoalsPage() {
   const userId = 'user123'; // Geçici olarak sabit bir kullanıcı ID'si kullanıyoruz
 
   useEffect(() => {
-    fetchGoals();
+    const stored = localStorage.getItem('goals');
+    let parsed = [];
+    try {
+      parsed = stored ? JSON.parse(stored) : [];
+    } catch {
+      parsed = [];
+    }
+    if (!stored || (Array.isArray(parsed) && parsed.length === 0)) {
+      import('../../data/goals.json').then((mod) => {
+        setGoals(mod.default);
+        localStorage.setItem('goals', JSON.stringify(mod.default));
+      });
+    } else {
+      setGoals(parsed);
+    }
+    setIsLoading(false);
   }, []);
 
-  const fetchGoals = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // Her goals değiştiğinde localStorage'a kaydet
+  useEffect(() => {
+    localStorage.setItem('goals', JSON.stringify(goals));
+  }, [goals]);
 
-      const response = await fetch(`/api/goals?userId=${userId}`);
-      if (!response.ok) {
-        throw new Error('Hedefler getirilemedi');
-      }
-
-      const data = await response.json();
-      setGoals(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCreateGoal = () => {
+    setError(null);
+    const newGoal: Goal = {
+      _id: Date.now().toString(),
+      userId,
+      title,
+      description,
+      type,
+      targetValue,
+      currentValue,
+      unit,
+      deadline,
+      milestones: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setGoals([newGoal, ...goals]);
+    resetForm();
   };
 
-  const handleCreateGoal = async () => {
-    try {
-      setError(null);
-      const response = await fetch('/api/goals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          title,
-          description,
-          type,
-          targetValue,
-          currentValue,
-          unit,
-          deadline,
-          milestones: [],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Hedef oluşturulamadı');
-      }
-
-      const newGoal = await response.json();
-      setGoals([newGoal, ...goals]);
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleUpdateGoal = (goal: Goal) => {
+    setError(null);
+    const updatedGoal: Goal = {
+      ...goal,
+      title,
+      description,
+      type,
+      targetValue,
+      currentValue,
+      unit,
+      deadline,
+      updatedAt: new Date(),
+    };
+    setGoals(goals.map((g) => (g._id === goal._id ? updatedGoal : g)));
+    resetForm();
   };
 
-  const handleUpdateGoal = async (goal: Goal) => {
-    try {
-      setError(null);
-      const response = await fetch(`/api/goals/${goal._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          title,
-          description,
-          type,
-          targetValue,
-          currentValue,
-          unit,
-          deadline,
-          milestones: goal.milestones,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Hedef güncellenemedi');
-      }
-
-      const updatedGoal = await response.json();
-      setGoals(goals.map((g) => (g._id === goal._id ? updatedGoal : g)));
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
-  };
-
-  const handleDeleteGoal = async (goalId: string) => {
-    try {
-      setError(null);
-      const response = await fetch(`/api/goals/${goalId}?userId=${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Hedef silinemedi');
-      }
-
-      setGoals(goals.filter((g) => String(g._id) !== goalId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    }
+  const handleDeleteGoal = (goalId: string) => {
+    setError(null);
+    setGoals(goals.filter((g) => String(g._id) !== goalId));
   };
 
   const handleAddMilestone = (goal: Goal) => {
     if (!milestoneTitle.trim()) return;
-
     const newMilestone = {
       id: Date.now().toString(),
       title: milestoneTitle,
       completed: false,
     };
-
     const updatedGoal = {
       ...goal,
       milestones: [...goal.milestones, newMilestone],
     };
-
-    handleUpdateGoal(updatedGoal);
+    setGoals(goals.map((g) => (g._id === goal._id ? updatedGoal : g)));
     setMilestoneTitle('');
   };
 
   const handleToggleMilestone = (goal: Goal, milestoneId: string) => {
-    const updatedMilestones = goal.milestones.map((milestone) =>
+    const updatedMilestones = goal.milestones.map((milestone: any) =>
       milestone.id === milestoneId ? { ...milestone, completed: !milestone.completed } : milestone
     );
-
     const updatedGoal = {
       ...goal,
       milestones: updatedMilestones,
     };
-
-    handleUpdateGoal(updatedGoal);
+    setGoals(goals.map((g) => (g._id === goal._id ? updatedGoal : g)));
   };
 
   const resetForm = () => {
@@ -198,7 +160,7 @@ export default function GoalsPage() {
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-red-50 dark:from-blue-900 dark:via-green-900 dark:to-red-900">
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-green-500 to-red-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-fitness-blue via-fitness-green to-fitness-orange bg-clip-text text-transparent mb-4 text-center drop-shadow-lg">
             Hedefler
           </h1>
           <motion.div
@@ -206,8 +168,9 @@ export default function GoalsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <p className="text-gray-600 dark:text-gray-300">
-              Sağlık ve fitness hedeflerinizi takip edin
+            <p className="text-lg text-gray-600 dark:text-gray-300 text-center max-w-2xl mx-auto">
+              Hedeflerini belirle, ilerlemeni takip et ve başarıya ulaş! Her hedef için kilometre
+              taşları ekleyebilirsin.
             </p>
           </motion.div>
 
@@ -224,9 +187,9 @@ export default function GoalsPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="card mb-8"
+                className="card mb-8 bg-white/95 dark:bg-neutral-900/90 rounded-2xl shadow-2xl p-8 border border-fitness-blue/30"
               >
-                <h2 className="text-xl font-heading font-semibold mb-4">
+                <h2 className="text-2xl font-heading font-bold mb-4 text-fitness-blue dark:text-fitness-green">
                   {editingGoal ? 'Hedefi Düzenle' : 'Yeni Hedef'}
                 </h2>
                 <div className="space-y-4">
@@ -238,7 +201,7 @@ export default function GoalsPage() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="input w-full"
+                      className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       placeholder="Hedef başlığı"
                     />
                   </div>
@@ -249,7 +212,7 @@ export default function GoalsPage() {
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="input w-full"
+                      className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       rows={3}
                       placeholder="Hedef açıklaması"
                     />
@@ -262,7 +225,7 @@ export default function GoalsPage() {
                       <select
                         value={type}
                         onChange={(e) => setType(e.target.value as Goal['type'])}
-                        className="input w-full"
+                        className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       >
                         <option value="weight">Kilo</option>
                         <option value="fitness">Fitness</option>
@@ -278,7 +241,7 @@ export default function GoalsPage() {
                         type="text"
                         value={unit}
                         onChange={(e) => setUnit(e.target.value)}
-                        className="input w-full"
+                        className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                         placeholder="kg, km, adet, vb."
                       />
                     </div>
@@ -292,7 +255,7 @@ export default function GoalsPage() {
                         type="number"
                         value={targetValue}
                         onChange={(e) => setTargetValue(parseFloat(e.target.value))}
-                        className="input w-full"
+                        className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       />
                     </div>
                     <div>
@@ -303,7 +266,7 @@ export default function GoalsPage() {
                         type="number"
                         value={currentValue}
                         onChange={(e) => setCurrentValue(parseFloat(e.target.value))}
-                        className="input w-full"
+                        className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                       />
                     </div>
                   </div>
@@ -315,18 +278,18 @@ export default function GoalsPage() {
                       type="date"
                       value={deadline}
                       onChange={(e) => setDeadline(e.target.value)}
-                      className="input w-full"
+                      className="input w-full rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                     />
                   </div>
                   <div className="flex justify-end space-x-4">
-                    <button onClick={resetForm} className="btn-secondary">
+                    <button onClick={resetForm} className="btn-secondary rounded-xl">
                       İptal
                     </button>
                     <button
                       onClick={() =>
                         editingGoal ? handleUpdateGoal(editingGoal) : handleCreateGoal()
                       }
-                      className="btn-primary"
+                      className="btn-primary rounded-xl"
                     >
                       {editingGoal ? 'Güncelle' : 'Oluştur'}
                     </button>
@@ -338,16 +301,27 @@ export default function GoalsPage() {
 
           {/* Hedef Listesi */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {goals.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-60">
+                <img src="/empty-goals.svg" alt="Boş Hedefler" className="w-32 h-32 mb-4" />
+                <p className="text-lg font-semibold">
+                  Henüz hiç hedefin yok. Hemen bir hedef ekle!
+                </p>
+              </div>
+            )}
             {goals.map((goal) => (
               <motion.div
                 key={String(goal._id)}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card"
+                whileHover={{ scale: 1.03, boxShadow: '0 8px 32px 0 rgba(0,0,0,0.12)' }}
+                className="card bg-white/90 dark:bg-neutral-900/80 rounded-2xl shadow-xl p-6 transition-all duration-200 border-2 border-fitness-blue/40 hover:border-fitness-green"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{goal.title}</h3>
+                    <h3 className="text-lg font-bold text-fitness-blue dark:text-fitness-green flex-1 truncate">
+                      {goal.title}
+                    </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {goal.type === 'weight' && 'Kilo'}
                       {goal.type === 'fitness' && 'Fitness'}
@@ -379,17 +353,22 @@ export default function GoalsPage() {
                     </button>
                   </div>
                 </div>
-
-                <p className="text-gray-600 dark:text-gray-300 mb-4">{goal.description}</p>
-
+                <p className="text-gray-700 dark:text-gray-200 mb-4 min-h-[40px]">
+                  {goal.description}
+                </p>
                 <div className="mb-4">
                   <div className="flex justify-between text-sm mb-1">
                     <span>İlerleme</span>
                     <span>{calculateProgress(goal.currentValue, goal.targetValue)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full"
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <motion.div
+                      className="bg-gradient-to-r from-fitness-blue to-fitness-green h-3 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${calculateProgress(goal.currentValue, goal.targetValue)}%`,
+                      }}
+                      transition={{ duration: 0.8 }}
                       style={{
                         width: `${calculateProgress(goal.currentValue, goal.targetValue)}%`,
                       }}
@@ -404,44 +383,42 @@ export default function GoalsPage() {
                     </span>
                   </div>
                 </div>
-
                 <div className="mb-4">
                   <h4 className="text-sm font-medium mb-2">Kilometre Taşları</h4>
                   <div className="space-y-2">
-                    {goal.milestones.map((milestone: string, idx: number) => (
-                      <div key={`${milestone}-${idx}`} className="flex items-center space-x-2">
+                    {goal.milestones.map((milestone: any, idx: number) => (
+                      <div key={milestone.id || idx} className="flex items-center space-x-2">
                         <button
-                          onClick={() => handleToggleMilestone(goal, milestone)}
-                          className={`p-1 rounded ${
-                            milestone.completed
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
-                          }`}
+                          onClick={() => handleToggleMilestone(goal, milestone.id)}
+                          className={`p-1 rounded-full border-2 transition-all duration-200 ${milestone.completed ? 'bg-gradient-to-r from-fitness-blue to-fitness-green text-white border-fitness-blue scale-110' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 border-gray-300 dark:border-gray-700 hover:scale-105'}`}
+                          title={milestone.completed ? 'Tamamlandı' : 'Tamamla'}
                         >
                           <CheckIcon className="w-4 h-4" />
                         </button>
                         <span className={milestone.completed ? 'line-through text-gray-500' : ''}>
-                          {milestone}
+                          {milestone.title}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
-
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={milestoneTitle}
                     onChange={(e) => setMilestoneTitle(e.target.value)}
                     placeholder="Yeni kilometre taşı..."
-                    className="input flex-1"
+                    className="input flex-1 rounded-xl shadow focus:ring-2 focus:ring-fitness-blue"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && milestoneTitle.trim()) {
                         handleAddMilestone(goal);
                       }
                     }}
                   />
-                  <button onClick={() => handleAddMilestone(goal)} className="btn-secondary">
+                  <button
+                    onClick={() => handleAddMilestone(goal)}
+                    className="btn-secondary rounded-xl"
+                  >
                     Ekle
                   </button>
                 </div>
